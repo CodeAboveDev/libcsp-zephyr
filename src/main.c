@@ -1,3 +1,5 @@
+#include <csp/csp.h>
+
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/uart.h>
@@ -15,14 +17,11 @@
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 static const struct device *const uart_dev = DEVICE_DT_GET(UART_DEVICE_NODE);
 
-void print_uart(char *buf)
-{
-    int msg_len = strlen(buf);
+/* These three functions must be provided in arch specific way */
+void router_start(void);
+void server_start(void);
+void client_start(void);
 
-    for (int i = 0; i < msg_len; i++) {
-        uart_poll_out(uart_dev, buf[i]);
-    }
-}
 
 static int tx_pos = 0;
 static int tx_len = 0;
@@ -89,6 +88,7 @@ void serial_cb(const struct device *dev, void *user_data)
 void main(void)
 {
     int ret;
+    char* text = "1234567890123456789012345678901234567890\r\n";
 
     if (!gpio_is_ready_dt(&led))
     {
@@ -118,14 +118,21 @@ void main(void)
         }
         return;
     }
-
-    char* text = "1234567890123456789012345678901234567890\r\n";
-
     uart_irq_rx_enable(uart_dev);
+
+    /*** Cubesat Space Protocol ***/
+	csp_print("Initialising CSP");
+
+	/* Init CSP */
+	csp_init();
+
+	/* Start router */
+	router_start();
+
 
     while (1)
     {
-        uart_irq_write(text, strlen(text));
+        // uart_irq_write(text, strlen(text));
         ret = gpio_pin_toggle_dt(&led);
         if (ret < 0)
         {
