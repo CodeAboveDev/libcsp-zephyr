@@ -2,7 +2,9 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/uart.h>
 
-#define SLEEP_TIME_MS ( 250 )
+#include <string.h>
+
+#define SLEEP_TIME_MS ( 1000 )
 
 /* The devicetree node identifier for the "led0" alias. */
 #define LED0_NODE DT_ALIAS(led0)
@@ -20,6 +22,68 @@ void print_uart(char *buf)
     for (int i = 0; i < msg_len; i++) {
         uart_poll_out(uart_dev, buf[i]);
     }
+}
+
+static int tx_pos = 0;
+static int tx_len = 0;
+static char* tx_buf_ptr;
+
+void uart_irq_write(char* buf, int size)
+{
+    tx_pos = 0;
+    tx_len = size;
+    tx_buf_ptr = buf;
+
+    uart_irq_tx_enable(uart_dev);
+}
+
+
+void serial_cb(const struct device *dev, void *user_data)
+{
+    static int i = 0;
+    i++;
+
+    int ret;
+    if(!uart_irq_update(uart_dev)){
+        return;
+    }
+
+    /* RX */
+    ret = uart_irq_rx_ready(uart_dev);
+    if(ret)
+    {
+        uint8_t c;
+        uart_fifo_read(uart_dev, &c, 1);
+        printk("%c", c);
+
+        if(c == 'i')
+        {
+            printk("i = %d\n", i);
+        }
+    }
+
+    /* TX */
+    ret = uart_irq_tx_ready(uart_dev);
+    if(ret)
+    {
+        if(tx_pos < tx_len)
+        {
+            ret = uart_fifo_fill(uart_dev, tx_buf_ptr+tx_pos, 1);
+            tx_pos += ret;
+        }
+        else
+        {
+            ret = uart_irq_tx_complete(uart_dev);
+            if(ret){
+                uart_irq_tx_disable(uart_dev);
+            }
+        }
+    }
+    else
+    {
+        return;
+    }
+
 }
 
 void main(void)
@@ -43,10 +107,25 @@ void main(void)
         return;
     }
 
-    print_uart("Hello! I'm libcsp zephyr application.\r\n");
+    ret = uart_irq_callback_user_data_set(uart_dev, serial_cb, NULL);
+    if (ret < 0) {
+        if (ret == -ENOTSUP) {
+            printk("Interrupt-driven UART API support not enabled\n");
+        } else if (ret == -ENOSYS) {
+            printk("UART device does not support interrupt-driven API\n");
+        } else {
+            printk("Error setting UART callback: %d\n", ret);
+        }
+        return;
+    }
+
+    char* text = "1234567890123456789012345678901234567890\r\n";
+
+    uart_irq_rx_enable(uart_dev);
 
     while (1)
     {
+        uart_irq_write(text, strlen(text));
         ret = gpio_pin_toggle_dt(&led);
         if (ret < 0)
         {
