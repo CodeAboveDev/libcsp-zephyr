@@ -1,6 +1,6 @@
 / {
     aliases {
-        kissusart = &usart2;
+        cspkissuart = &usart2;
     };
 };
 
