@@ -1,4 +1,5 @@
 #include <csp/csp.h>
+#include <csp/drivers/usart.h>
 
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
@@ -121,7 +122,7 @@ void main(void)
     uart_irq_rx_enable(uart_dev);
 
     /*** Cubesat Space Protocol ***/
-	csp_print("Initialising CSP");
+    csp_print("Initialising CSP\n");
 
 	/* Init CSP */
 	csp_init();
@@ -129,6 +130,16 @@ void main(void)
 	/* Start router */
 	router_start();
 
+    /* Add interface(s) */
+    csp_iface_t * default_iface = NULL;
+
+    // Configure USART in devicetree and here pass NULL
+    int error = csp_usart_open_and_add_kiss_interface(NULL, CSP_IF_KISS_DEFAULT_NAME, &default_iface);
+    if (error != CSP_ERR_NONE)
+    {
+        csp_print("Failed to add KISS interface [%s], error: %d\n", DEVICE_DT_NAME(DT_ALIAS(cspkissuart)), error);
+        return;
+    }
 
     while (1)
     {
