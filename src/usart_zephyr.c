@@ -7,7 +7,7 @@
 
 #include <stdlib.h>
 
-#define RX_THREAD_STACK_SIZE ( 400 )
+#define RX_THREAD_STACK_SIZE ( 800 )
 #define RX_THREAD_PRIORITY ( 0 )
 
 K_THREAD_STACK_DEFINE(rx_thread_stack_area, RX_THREAD_STACK_SIZE);

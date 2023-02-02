@@ -4,7 +4,7 @@
 void server(void);
 void client(void);
 
-#define ROUTER_STACK_SIZE 200
+#define ROUTER_STACK_SIZE 800
 #define SERVER_STACK_SIZE 400
 #define CLIENT_STACK_SIZE 400
 #define ROUTER_PRIO 0
@@ -15,7 +15,7 @@ static void * router_task(void * param) {
 
     /* Here there be routing */
     while (1) {
-        // csp_route_work();
+        csp_route_work();
         k_msleep(1);
     }
 
