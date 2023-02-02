@@ -157,6 +157,8 @@ void main(void)
 
     }
 
+    server_start();
+
     while (1)
     {
         // uart_irq_write(text, strlen(text));
