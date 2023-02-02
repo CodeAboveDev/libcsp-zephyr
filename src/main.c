@@ -140,6 +140,22 @@ void main(void)
         csp_print("Failed to add KISS interface [%s], error: %d\n", DEVICE_DT_NAME(DT_ALIAS(cspkissuart)), error);
         return;
     }
+    else
+    {
+        csp_print("KISS interface OK\n");
+        
+        default_iface->addr = 1;
+    
+        csp_print("Connection table\r\n");
+        csp_conn_print_table();
+
+        csp_print("Interfaces\r\n");
+        csp_iflist_print();
+
+        csp_print("Route table\r\n");
+        csp_rtable_print();
+
+    }
 
     while (1)
     {
