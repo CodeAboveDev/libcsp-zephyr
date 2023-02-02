@@ -10,6 +10,9 @@
 #define RX_THREAD_STACK_SIZE ( 800 )
 #define RX_THREAD_PRIORITY ( 0 )
 
+#define RX_BUFFER_SIZE ( 200 )
+#define RX_RETRY ( 250 )
+
 K_THREAD_STACK_DEFINE(rx_thread_stack_area, RX_THREAD_STACK_SIZE);
 
 static const struct device *const csp_kiss_uart_dev = DEVICE_DT_GET(DT_ALIAS(cspkissuart));
@@ -36,14 +39,50 @@ void csp_usart_unlock(void * driver_data)
 
 static void usart_rx_thread(void * p1, void * p2, void * p3)
 {
-	ARG_UNUSED(p1);
+	// ARG_UNUSED(p1);
 	ARG_UNUSED(p2);
 	ARG_UNUSED(p3);
 
+    usart_context_t * ctx = p1;
+    int ret;
+    uint8_t c;
+    int length = 0;
+    char rx_buf[RX_BUFFER_SIZE] = { 0 };
+    uint8_t retry = 0;
+
     while(1)
     {
-        csp_print("rx thread\n");
-        k_msleep(2500);
+        ret = uart_poll_in(csp_kiss_uart_dev, rx_buf+length);
+
+        if(ret == 0 && length < RX_BUFFER_SIZE)
+        {
+            // csp_print("%c", c);
+
+            retry = 0;
+            length++;
+        }
+        else if(ret == -1)
+        {
+            retry++;
+            if(retry >= RX_RETRY)
+            {
+                if(length > 0)
+                {
+                    csp_print("Len: %d, buf: %s\n", length, rx_buf);
+                    ctx->rx_callback(ctx->user_data, rx_buf, length, NULL);
+
+                    length = 0;
+                    k_msleep(10);
+                }
+                else
+                {
+                    // csp_print("Len: %d\n", length);
+                }
+                retry = 0;
+
+                // k_msleep(10);
+            }
+        }
     }
 
     // usart_context_t * ctx = arg;
@@ -116,7 +155,7 @@ int csp_usart_open(const csp_usart_conf_t * conf, csp_usart_callback_t rx_callba
         // TODO: How about creating thread at compile time and only enabling it here?
         ctx->rx_thread_id = k_thread_create(&ctx->rx_thread, rx_thread_stack_area,
             K_THREAD_STACK_SIZEOF(rx_thread_stack_area), usart_rx_thread,
-            NULL, NULL, NULL,
+            ctx, NULL, NULL,
             RX_THREAD_PRIORITY, 0, K_NO_WAIT);
 
         // if(is there anything that can go wrong?)
