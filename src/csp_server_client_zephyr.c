@@ -15,7 +15,8 @@ static void * router_task(void * param) {
 
 	/* Here there be routing */
 	while (1) {
-		csp_route_work();
+        // csp_route_work();
+        k_msleep(1);
 	}
 
 	return NULL;
