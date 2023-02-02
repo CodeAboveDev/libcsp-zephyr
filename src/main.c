@@ -57,18 +57,19 @@ void main(void)
     else
     {
         csp_print("KISS interface OK\n");
-        
         default_iface->addr = 1;
-    
-        csp_print("Connection table\r\n");
-        csp_conn_print_table();
-
-        csp_print("Interfaces\r\n");
-        csp_iflist_print();
-
-        csp_print("Route table\r\n");
-        csp_rtable_print();
     }
+
+    csp_rtable_set(0, 0, default_iface, CSP_NO_VIA_ADDRESS); 
+
+    csp_print("Connection table\r\n");
+    csp_conn_print_table();
+
+    csp_print("Interfaces\r\n");
+    csp_iflist_print();
+
+    csp_print("Route table\r\n");
+    csp_rtable_print();
 
     server_start();
 
