@@ -13,55 +13,55 @@ void client(void);
 
 static void * router_task(void * param) {
 
-	/* Here there be routing */
-	while (1) {
+    /* Here there be routing */
+    while (1) {
         // csp_route_work();
         k_msleep(1);
-	}
+    }
 
-	return NULL;
+    return NULL;
 }
 
 static void * server_task(void * p1, void * p2, void * p3) {
 
-	ARG_UNUSED(p1);
-	ARG_UNUSED(p2);
-	ARG_UNUSED(p3);
+    ARG_UNUSED(p1);
+    ARG_UNUSED(p2);
+    ARG_UNUSED(p3);
 
-	// server();
+    // server();
 
-	return NULL;
+    return NULL;
 }
 
 static void * client_task(void * p1, void * p2, void * p3) {
 
-	ARG_UNUSED(p1);
-	ARG_UNUSED(p2);
-	ARG_UNUSED(p3);
+    ARG_UNUSED(p1);
+    ARG_UNUSED(p2);
+    ARG_UNUSED(p3);
 
-	// client();
+    // client();
 
-	return NULL;
+    return NULL;
 }
 
 K_THREAD_DEFINE(router_id, ROUTER_STACK_SIZE,
-				router_task, NULL, NULL, NULL,
-				ROUTER_PRIO, 0, K_TICKS_FOREVER);
+                router_task, NULL, NULL, NULL,
+                ROUTER_PRIO, 0, K_TICKS_FOREVER);
 K_THREAD_DEFINE(server_id, SERVER_STACK_SIZE,
-				server_task, NULL, NULL, NULL,
-				SERVER_PRIO, 0, K_TICKS_FOREVER);
+                server_task, NULL, NULL, NULL,
+                SERVER_PRIO, 0, K_TICKS_FOREVER);
 K_THREAD_DEFINE(client_id, CLIENT_STACK_SIZE,
-				client_task, NULL, NULL, NULL,
-				CLIENT_PRIO, 0, K_TICKS_FOREVER);
+                client_task, NULL, NULL, NULL,
+                CLIENT_PRIO, 0, K_TICKS_FOREVER);
 
 void router_start(void) {
-	k_thread_start(router_id);
+    k_thread_start(router_id);
 }
 
 void server_start(void) {
-	k_thread_start(server_id);
+    k_thread_start(server_id);
 }
 
 void client_start(void) {
-	k_thread_start(client_id);
+    k_thread_start(client_id);
 }
