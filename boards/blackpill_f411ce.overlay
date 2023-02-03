@@ -10,3 +10,7 @@
     pinctrl-names = "default";
 	current-speed = <115200>;
 };
+
+&dma1 {
+    status = "okay";
+};
