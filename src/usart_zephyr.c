@@ -191,9 +191,7 @@ int csp_usart_open(const csp_usart_conf_t * conf, csp_usart_callback_t rx_callba
     ctx->user_data = user_data;
     // ctx->fd = fd; // TODO: Read struct member comment
 
-    // Spawn RX thread
-    if (rx_callback)
-    {
+    // Setup UART callback
         int ret = uart_callback_set(csp_kiss_uart_dev, csp_kiss_uart_event_cb, ctx);
         if(ret != 0)
         {
@@ -202,6 +200,9 @@ int csp_usart_open(const csp_usart_conf_t * conf, csp_usart_callback_t rx_callba
             return CSP_ERR_DRIVER;
         }
 
+    // Enable RX if callback provided
+    if (rx_callback)
+    {
         ret = uart_rx_enable(csp_kiss_uart_dev, rx_buffer, RX_BUFFER_SIZE, RX_TIMEOUT);
         if(ret != 0)
         {
