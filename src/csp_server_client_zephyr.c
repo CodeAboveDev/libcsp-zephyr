@@ -5,7 +5,7 @@ void server(void);
 void client(void);
 
 #define ROUTER_STACK_SIZE 800
-#define SERVER_STACK_SIZE 400
+#define SERVER_STACK_SIZE 800
 #define CLIENT_STACK_SIZE 400
 #define ROUTER_PRIO 0
 #define SERVER_PRIO 0
