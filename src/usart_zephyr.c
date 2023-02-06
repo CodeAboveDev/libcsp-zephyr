@@ -36,7 +36,6 @@ void csp_usart_unlock(void * driver_data)
 int csp_usart_write(csp_usart_fd_t fd, const void * data, size_t data_length)
 {
     // Timeout in microseconds valid only if flow control is enabled
-    csp_print("csp_usart_write: %d\n", data_length);
     int ret = uart_tx(csp_kiss_uart_dev, data, data_length, SYS_FOREVER_US);
     if(ret != 0)
     {
@@ -48,13 +47,12 @@ int csp_usart_write(csp_usart_fd_t fd, const void * data, size_t data_length)
 
 void csp_kiss_uart_event_cb(const struct device* dev, struct uart_event* evt, void* user_data)
 {
-    csp_print("uart event: %d\n", evt->type);
     usart_context_t * ctx = user_data;
 
     switch(evt->type)
     {
     case UART_TX_DONE:
-        csp_print("tx: %d\n", evt->data.tx.len);
+        tx_busy = false;
         break;
 
     case UART_TX_ABORTED:
@@ -62,7 +60,6 @@ void csp_kiss_uart_event_cb(const struct device* dev, struct uart_event* evt, vo
 
 	case UART_RX_RDY:
         uart_rx_disable(csp_kiss_uart_dev);
-        csp_print("rx: %d\n", evt->data.rx.len);
         ctx->rx_callback(ctx->user_data, evt->data.rx.buf+evt->data.rx.offset, evt->data.rx.len, NULL);
         break;
 
