@@ -3,7 +3,6 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
-#include <zephyr/drivers/uart.h>
 
 #include <string.h>
 
@@ -36,7 +35,7 @@ void main(void)
     }
 
     /*** Cubesat Space Protocol ***/
-    csp_print("Initialising CSP\n");
+    printk("Initializing CSP\n");
 
     /* Init CSP */
     csp_init();
