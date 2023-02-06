@@ -14,6 +14,7 @@
 static const struct device *const csp_kiss_uart_dev = DEVICE_DT_GET(DT_ALIAS(cspkissuart));
 
 static uint8_t rx_buffer[RX_BUFFER_SIZE];
+static volatile bool tx_busy = false;
 
 typedef struct {
     csp_usart_callback_t rx_callback;
@@ -35,6 +36,13 @@ void csp_usart_unlock(void * driver_data)
 
 int csp_usart_write(csp_usart_fd_t fd, const void * data, size_t data_length)
 {
+    while(tx_busy)
+    {
+        // Wait till TX is not busy
+        // TODO: Use Zephyr utility to wait with timeout
+    };
+    tx_busy = true;
+    
     // Timeout in microseconds valid only if flow control is enabled
     int ret = uart_tx(csp_kiss_uart_dev, data, data_length, SYS_FOREVER_US);
     if(ret != 0)
