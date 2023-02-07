@@ -3,7 +3,6 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
-#include <zephyr/drivers/sensor.h>
 
 #include <string.h>
 
@@ -12,10 +11,7 @@
 /* The devicetree node identifier for the "led0" alias. */
 #define LED0_NODE DT_ALIAS(led0)
 
-#define CPU_TEMP_NODE DT_ALIAS(cputemp)
-
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
-static const struct device *const cpu_temp = DEVICE_DT_GET(CPU_TEMP_NODE);
 
 /* These three functions must be provided in arch specific way */
 void router_start(void);
@@ -37,26 +33,6 @@ void main(void)
     {
         return;
     }
-
-    /*** CPU temperature sensor ***/
-    if (!device_is_ready(cpu_temp))
-    {
-        printk("sensor: device %s not ready.\n", cpu_temp->name);
-        return;
-    }
-
-	ret = sensor_sample_fetch(cpu_temp);
-	if (ret) {
-		printk("Failed to fetch sample (%d)\n", ret);
-	}
-
-	struct sensor_value val;
-	ret = sensor_channel_get(cpu_temp, SENSOR_CHAN_DIE_TEMP, &val);
-	if (ret) {
-		printk("Failed to get data (%d)\n", ret);
-	}
-
-	printk("CPU Die temperature[%s]: %.1f °C (%d %d)\n", cpu_temp->name, sensor_value_to_double(&val), val.val1, val.val2);
 
     /*** Cubesat Space Protocol ***/
     printk("Initializing CSP\n");
@@ -98,8 +74,6 @@ void main(void)
 
     while (1)
     {
-
-
         ret = gpio_pin_toggle_dt(&led);
         if (ret < 0)
         {
