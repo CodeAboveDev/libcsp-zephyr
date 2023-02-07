@@ -1,5 +1,6 @@
 #include <csp/csp.h>
 #include <zephyr/kernel.h>
+#include <zephyr/drivers/sensor.h>
 
 void server(void);
 void client(void);
@@ -13,15 +14,29 @@ void client(void);
 
 /* Server port, the port the server listens on for incoming connections from the client. */
 #define MY_SERVER_PORT		10
+#define CPU_TEMPERATURE_PORT		11
 
-/* test mode, used for verifying that host & client can exchange packets over the loopback interface */
-static bool test_mode = true;
+#define CPU_TEMP_NODE DT_ALIAS(cputemp)
+
+static const struct device *const cpu_temp = DEVICE_DT_GET(CPU_TEMP_NODE);
+
 static unsigned int server_received = 0;
 
-void server(void) {
+void server(void)
+{
+    int ret;
+    struct sensor_value val;
 
     csp_print("Server task started\n");
 
+    /*** CPU temperature sensor ***/
+    if (!device_is_ready(cpu_temp))
+    {
+        printk("sensor: device %s not ready.\n", cpu_temp->name);
+        return;
+    }
+
+    /*** ***/
     /* Create socket with no specific socket options, e.g. accepts CRC32, HMAC, etc. if enabled during compilation */
     csp_socket_t sock = {0};
 
@@ -50,6 +65,28 @@ void server(void) {
                 csp_print("Packet received on MY_SERVER_PORT: %s\n", (char *) packet->data);
                 csp_buffer_free(packet);
                 ++server_received;
+                break;
+
+            case CPU_TEMPERATURE_PORT:
+                ret = sensor_sample_fetch(cpu_temp);
+                if (ret)
+                {
+                    printk("Failed to fetch sample (%d)\n", ret);
+                }
+
+                ret = sensor_channel_get(cpu_temp, SENSOR_CHAN_DIE_TEMP, &val);
+                if (ret)
+                {
+                    printk("Failed to get data (%d)\n", ret);
+                }
+                
+                printk("CPU Die temperature[%s] request: %.1f °C (%d %d)\n", cpu_temp->name, sensor_value_to_double(&val), val.val1, val.val2);
+
+                memcpy(packet->data, &val.val1, sizeof(val.val1));
+                memcpy(packet->data+sizeof(val.val1), &val.val2, sizeof(val.val2));
+                packet->length = sizeof(val.val1)+sizeof(val.val2);
+
+                csp_sendto_reply(packet, packet, CSP_O_SAME);
                 break;
 
             default:
