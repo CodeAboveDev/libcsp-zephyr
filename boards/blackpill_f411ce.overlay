@@ -2,6 +2,7 @@
     aliases {
         cspkissuart = &usart2;
         uartdma = &dma1;
+        cputemp = &die_temp;
     };
 };
 
@@ -15,5 +16,9 @@
 };
 
 &dma1 {
+    status = "okay";
+};
+
+&die_temp {
     status = "okay";
 };
