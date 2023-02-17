@@ -3,6 +3,7 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/i2c.h>
 
 #include <string.h>
 
@@ -10,8 +11,10 @@
 
 /* The devicetree node identifier for the "led0" alias. */
 #define LED0_NODE DT_ALIAS(led0)
+// #define CSP_I2C_NODE DT_ALIAS(cspi2c)
 
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
+// static const struct i2c_dt_spec i2c = I2C_DT_SPEC_GET(CSP_I2C_NODE);
 
 /* These three functions must be provided in arch specific way */
 void router_start(void);
@@ -21,6 +24,8 @@ void client_start(void);
 void main(void)
 {
     int ret;
+
+    const struct device *const i2c_dev = DEVICE_DT_GET(DT_NODELABEL(i2c1));
 
     /*** User LED ***/
     if (!gpio_is_ready_dt(&led))
@@ -33,6 +38,21 @@ void main(void)
     {
         return;
     }
+
+    /*** I2C ***/
+    if (!device_is_ready(i2c_dev))
+    {
+        printk("I2C not ready!\n");
+        return;
+    }
+
+    ret = csp_i2c_open();
+    if (ret != CSP_ERR_NONE)
+    {
+        csp_print("Failed to open I2C , error: %d\n", ret);
+        return;
+    }
+
 
     /*** Cubesat Space Protocol ***/
     printk("Initializing CSP\n");
@@ -72,8 +92,13 @@ void main(void)
 
     server_start();
 
+    uint8_t buf[16] = { "HelloI2Cmessage!" };
+
     while (1)
     {
+        // ret = i2c_write(i2c_dev, buf, 16, 11);
+        // printk("i2c_write: %d\n", ret);
+
         ret = gpio_pin_toggle_dt(&led);
         if (ret < 0)
         {
