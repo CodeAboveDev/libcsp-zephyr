@@ -1,5 +1,6 @@
 #include <csp/csp.h>
 #include <csp/drivers/usart.h>
+#include "i2c.h"
 
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
@@ -40,18 +41,18 @@ void main(void)
     }
 
     /*** I2C ***/
-    if (!device_is_ready(i2c_dev))
-    {
-        printk("I2C not ready!\n");
-        return;
-    }
+    // if (!device_is_ready(i2c_dev))
+    // {
+    //     printk("I2C not ready!\n");
+    //     return;
+    // }
 
-    ret = csp_i2c_open();
-    if (ret != CSP_ERR_NONE)
-    {
-        csp_print("Failed to open I2C , error: %d\n", ret);
-        return;
-    }
+    // ret = csp_i2c_open();
+    // if (ret != CSP_ERR_NONE)
+    // {
+    //     csp_print("Failed to open I2C , error: %d\n", ret);
+    //     return;
+    // }
 
 
     /*** Cubesat Space Protocol ***/
