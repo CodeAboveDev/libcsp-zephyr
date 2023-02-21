@@ -64,22 +64,37 @@ void main(void)
     router_start();
 
     /* Add interface(s) */
-    csp_iface_t * default_iface = NULL;
+    csp_iface_t * kiss_iface = NULL;
+    csp_iface_t * i2c_iface = NULL;
 
     // Configure USART in devicetree and here pass NULL
-    int error = csp_usart_open_and_add_kiss_interface(NULL, CSP_IF_KISS_DEFAULT_NAME, &default_iface);
-    if (error != CSP_ERR_NONE)
+    ret = csp_usart_open_and_add_kiss_interface(NULL, CSP_IF_KISS_DEFAULT_NAME, &kiss_iface);
+    if (ret != CSP_ERR_NONE)
     {
-        csp_print("Failed to add KISS interface [%s], error: %d\n", DEVICE_DT_NAME(DT_ALIAS(cspkissuart)), error);
+        csp_print("Failed to add KISS interface [%s], error: %d\n", DEVICE_DT_NAME(DT_ALIAS(cspkissuart)), ret);
         return;
     }
     else
     {
         csp_print("KISS interface OK\n");
-        default_iface->addr = 1;
+        kiss_iface->addr = 1;
     }
 
-    csp_rtable_set(0, 0, default_iface, CSP_NO_VIA_ADDRESS); 
+    // Configure I2C
+    ret = csp_i2c_open_and_add_interface(NULL, CSP_IF_I2C_DEFAULT_NAME, &i2c_iface);
+    if (ret != CSP_ERR_NONE)
+    {
+        csp_print("Failed to add I2C interface [%s], error: %d\n", DEVICE_DT_NAME(DT_ALIAS(cspi2c)), ret);
+        return;
+    }
+    else
+    {
+        csp_print("I2C interface OK\n");
+        i2c_iface->addr = 1;
+    }
+
+
+    csp_rtable_set(0, 0, kiss_iface, CSP_NO_VIA_ADDRESS);
 
     csp_print("Connection table\r\n");
     csp_conn_print_table();
