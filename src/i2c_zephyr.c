@@ -128,7 +128,7 @@ int csp_i2c_open(void)
     return CSP_ERR_NONE;
 }
 
-int csp_i2c_write(void * driver_data, csp_packet_t * frame)
+int csp_i2c_write(void * driver_data, csp_packet_t * packet)
 {
     // i2c_context_t* ctx = driver_data;
 

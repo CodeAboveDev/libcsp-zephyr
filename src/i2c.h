@@ -31,7 +31,7 @@ typedef struct csp_i2c_conf {
  * Write data on open I2C.
  * @return number of bytes written on success, a negative value on failure. 
  */
-int csp_i2c_write(void * driver_data, csp_packet_t * frame);
+int csp_i2c_write(void * driver_data, csp_packet_t * packet);
 
 /**
  * Lock the device, so only a single user can use I2C device at a time
