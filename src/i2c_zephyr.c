@@ -46,7 +46,7 @@ static struct i2c_target_config csp_i2c_target_config =
 
 int csp_i2c_target_write_requested_cb(struct i2c_target_config *config)
 {
-    csp_print("csp_i2c_target_write_requested_cb\n");
+    // csp_print("csp_i2c_target_write_requested_cb\n");
     // TODO: IS THIS CALLED IN ISR?
     // TODO: yes, this is ISR context, handle properly!
 
@@ -75,7 +75,7 @@ int csp_i2c_target_write_requested_cb(struct i2c_target_config *config)
 
 int csp_i2c_target_read_requested_cb(struct i2c_target_config *config, uint8_t *val)
 {
-    csp_print("csp_i2c_target_read_requested_cb\n");
+    // csp_print("csp_i2c_target_read_requested_cb\n");
 
     // Only write is support, return negative error code to reject incoming write request
     return -ENOTSUP;
@@ -83,7 +83,7 @@ int csp_i2c_target_read_requested_cb(struct i2c_target_config *config, uint8_t *
 
 int csp_i2c_target_write_received_cb(struct i2c_target_config *config, uint8_t val)
 {
-    csp_print("csp_i2c_target_write_received_cb\n");
+    // csp_print("csp_i2c_target_write_received_cb\n");
 
     if (packet == NULL)
     {
@@ -97,7 +97,7 @@ int csp_i2c_target_write_received_cb(struct i2c_target_config *config, uint8_t v
 
 int csp_i2c_target_read_processed_cb(struct i2c_target_config *config, uint8_t *val)
 {
-    csp_print("csp_i2c_target_read_processed_cb\n");
+    // csp_print("csp_i2c_target_read_processed_cb\n");
 
     // Only write is support, return negative error code to reject incoming write request
     return -ENOTSUP;
@@ -105,7 +105,7 @@ int csp_i2c_target_read_processed_cb(struct i2c_target_config *config, uint8_t *
 
 int csp_i2c_target_stop_cb(struct i2c_target_config *config)
 {
-    csp_print("csp_i2c_target_stop_cb\n");
+    // csp_print("csp_i2c_target_stop_cb\n");
 
     uint8_t task_woken;
 
