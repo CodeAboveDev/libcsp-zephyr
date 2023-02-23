@@ -1,4 +1,5 @@
 #include <csp/csp.h>
+#include <csp/csp_debug.h>
 #include <csp/drivers/usart.h>
 #include "i2c.h"
 
@@ -60,6 +61,7 @@ void main(void)
 
     /* Init CSP */
     csp_init();
+    csp_dbg_packet_print = 1;
 
     /* Start router */
     router_start();
@@ -78,7 +80,7 @@ void main(void)
     else
     {
         csp_print("KISS interface OK\n");
-        kiss_iface->addr = 1;
+        kiss_iface->addr = 3;
     }
 
     // Configure I2C
@@ -91,7 +93,7 @@ void main(void)
     else
     {
         csp_print("I2C interface OK\n");
-        i2c_iface->addr = 1;
+        i2c_iface->addr = 3;
     }
 
 
