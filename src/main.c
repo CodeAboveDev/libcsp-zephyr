@@ -95,7 +95,8 @@ void main(void)
     }
 
 
-    csp_rtable_set(0, 0, kiss_iface, CSP_NO_VIA_ADDRESS);
+    csp_rtable_set(0, 9, i2c_iface, CSP_NO_VIA_ADDRESS);
+    csp_rtable_set(32, 9, kiss_iface, CSP_NO_VIA_ADDRESS);
 
     csp_print("Connection table\r\n");
     csp_conn_print_table();
