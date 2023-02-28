@@ -22,11 +22,10 @@ int csp_i2c_target_read_processed_cb(struct i2c_target_config *config, uint8_t *
 int csp_i2c_target_stop_cb(struct i2c_target_config *config);
 
 static const struct device *const i2c_dev = DEVICE_DT_GET(DT_NODELABEL(i2c1));
-// static const struct i2c_dt_spec csp_i2c = I2C_DT_SPEC_GET(DT_NODELABEL(i2c1));
 
 static csp_packet_t* packet = NULL;
 static i2c_context_t* ctx = NULL;
-static uint16_t rx_length = 0;
+volatile static uint16_t rx_length = 0;
 
 static struct i2c_target_callbacks csp_target_cbs = 
 {
@@ -39,27 +38,22 @@ static struct i2c_target_callbacks csp_target_cbs =
 
 static struct i2c_target_config csp_i2c_target_config =
 {
-    .address = 11,
+    .address = 0,
     .flags = 0,
     .callbacks = &csp_target_cbs
 };
 
 int csp_i2c_target_write_requested_cb(struct i2c_target_config *config)
 {
-    // csp_print("csp_i2c_target_write_requested_cb\n");
     // TODO: IS THIS CALLED IN ISR?
     // TODO: yes, this is ISR context, handle properly!
 
     // TODO: Get I2C ctx by i2c_target_config
 
-    // TODO: Packet buffer might still be in use
-    // if(packet != NULL)
-    // {
-    // }
-
     // There is an incoming packet, let's prepare a buffer for it
     // TODO: Get buffer size from interface MTU size
     // TODO: Keep packet in i2c ctx
+
     packet = csp_buffer_get_isr(CSP_BUFFER_SIZE);
     if (packet == NULL)
     {
@@ -69,26 +63,23 @@ int csp_i2c_target_write_requested_cb(struct i2c_target_config *config)
 
     csp_id_setup_rx(packet);
     rx_length = 0;
-    
+
     return 0;
 }
 
 int csp_i2c_target_read_requested_cb(struct i2c_target_config *config, uint8_t *val)
 {
-    // csp_print("csp_i2c_target_read_requested_cb\n");
-
     // Only write is support, return negative error code to reject incoming write request
     return -ENOTSUP;
 }
 
 int csp_i2c_target_write_received_cb(struct i2c_target_config *config, uint8_t val)
 {
-    // csp_print("csp_i2c_target_write_received_cb\n");
-
     if (packet == NULL)
     {
         // Buffer not prepared, abort receiving
-        return -1;
+        csp_print("Write RX packet NULL!\n");
+        return -CSP_ERR_NOBUFS;
     }
     packet->frame_begin[rx_length++] = val;
 
@@ -97,15 +88,13 @@ int csp_i2c_target_write_received_cb(struct i2c_target_config *config, uint8_t v
 
 int csp_i2c_target_read_processed_cb(struct i2c_target_config *config, uint8_t *val)
 {
-    // csp_print("csp_i2c_target_read_processed_cb\n");
-
     // Only write is support, return negative error code to reject incoming write request
     return -ENOTSUP;
 }
 
 int csp_i2c_target_stop_cb(struct i2c_target_config *config)
 {
-    // csp_print("csp_i2c_target_stop_cb\n");
+    csp_print("csp_i2c_target_stop_cb, rx_len: %d\n", rx_length);
 
     uint8_t task_woken;
 
@@ -117,22 +106,55 @@ int csp_i2c_target_stop_cb(struct i2c_target_config *config)
 
 int csp_i2c_open(void)
 {
-
     int ret = i2c_target_register(i2c_dev, &csp_i2c_target_config);
     if(ret != 0)
     {
-        csp_print("i2c_target_register failed, error: %d\n", ret);
+        csp_print("i2c_target_register() failed, error: %d\n", ret);
         return CSP_ERR_DRIVER;
     }
 
     return CSP_ERR_NONE;
 }
 
+#define WRITE_TRY ( 3 ) 
 int csp_i2c_write(void * driver_data, csp_packet_t * packet)
 {
-    // i2c_context_t* ctx = driver_data;
+    int ret;
+    csp_print("%s[%s]: sending packet, size: %d, dst: %d, cfpid: %d\n", __FUNCTION__, ctx->name, packet->frame_length, packet->id.dst, packet->cfpid);
 
-    return CSP_ERR_TX;
+    // // csp_i2c_tx() sets cfpid to either via address or destination address
+    // ret = i2c_write(i2c_dev, packet->frame_begin, packet->frame_length, packet->cfpid);
+    // csp_print("i2c_write: %d\n", ret);
+
+    struct i2c_msg msg;
+
+    /* Setup I2C messages */
+    if (!device_is_ready(i2c_dev))
+    {
+        csp_print("i2c not ready\n");
+        return CSP_ERR_TX;
+    }
+    csp_print("i2c ready\n");
+
+    /* Data to be written, and STOP after this. */
+    msg.buf = packet->frame_begin;
+    msg.len = packet->frame_length;
+    msg.flags = I2C_MSG_WRITE | I2C_MSG_STOP;
+
+    uint8_t try = 0;
+    do
+    {
+        ret = i2c_transfer(i2c_dev, &msg, 1, packet->cfpid);
+        csp_print("i2c_transfer: %d\n", ret);
+        try++;
+    } while ((ret != 0) && (try < WRITE_TRY));
+
+    if(ret != 0)
+    {
+        return CSP_ERR_TX;
+    }
+
+    return packet->frame_length;
 }
 
 int csp_i2c_open_and_add_interface(const csp_i2c_conf_t *conf, const char * ifname, csp_iface_t ** return_iface)
@@ -152,6 +174,7 @@ int csp_i2c_open_and_add_interface(const csp_i2c_conf_t *conf, const char * ifna
 
     strncpy(ctx->name, ifname, sizeof(ctx->name) - 1);
     ctx->iface.name = ctx->name;
+    ctx->iface.addr = conf->address;
     ctx->iface.driver_data = ctx;
     ctx->iface.interface_data = &ctx->ifdata;
     ctx->ifdata.tx_func = csp_i2c_write;
@@ -162,6 +185,7 @@ int csp_i2c_open_and_add_interface(const csp_i2c_conf_t *conf, const char * ifna
         return CSP_ERR_DRIVER;
     }
 
+    csp_i2c_target_config.address = conf->address;
     int ret = i2c_target_register(i2c_dev, &csp_i2c_target_config);
     if(ret != 0)
     {
