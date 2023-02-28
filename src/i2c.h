@@ -16,6 +16,8 @@
 typedef struct csp_i2c_conf {
     //! Bus bitrate
     uint32_t bitrate;
+    //! Slave address
+    uint8_t address;
 } csp_i2c_conf_t;
 
 // /** 
