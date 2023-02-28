@@ -4,7 +4,22 @@
         uartdma = &dma1;
         cputemp = &die_temp;
         cspi2c = &i2c1;
+
+        addr0 = &addr_0;
+        addr1 = &addr_1;
     };
+
+	gpio_keys {
+		addr_0: addr_0 {
+			label = "ADDR0";
+			gpios = <&gpiob 12 (GPIO_ACTIVE_HIGH)>;
+		};
+        addr_1: addr_1 {
+			label = "ADDR1";
+			gpios = <&gpiob 13 (GPIO_ACTIVE_HIGH)>;
+        };
+
+	};
 };
 
 &usart2 {

@@ -9,19 +9,47 @@
 
 #include <string.h>
 
+#define OBC_ADDR ( 1 )
+#define EPS_ADDR ( 2 )
+#define COM_ADDR ( 3 )
+
 #define SLEEP_TIME_MS ( 1000 )
 
 /* The devicetree node identifier for the "led0" alias. */
 #define LED0_NODE DT_ALIAS(led0)
 // #define CSP_I2C_NODE DT_ALIAS(cspi2c)
 
+#define ADDR0_NODE	DT_ALIAS(addr0)
+#define ADDR1_NODE	DT_ALIAS(addr1)
+
+static const struct gpio_dt_spec addr0 = GPIO_DT_SPEC_GET_OR(ADDR0_NODE, gpios, {0});
+static const struct gpio_dt_spec addr1 = GPIO_DT_SPEC_GET_OR(ADDR1_NODE, gpios, {0});
+                                  
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
-// static const struct i2c_dt_spec i2c = I2C_DT_SPEC_GET(CSP_I2C_NODE);
 
 /* These three functions must be provided in arch specific way */
 void router_start(void);
 void server_start(void);
 void client_start(void);
+
+void who_am_i(uint8_t addr)
+{
+    switch(addr)
+    {
+    case OBC_ADDR:
+        printk("HW: OBC\n");
+        break;
+    case EPS_ADDR:
+        printk("HW: EPS\n");
+        break;
+    case COM_ADDR:
+        printk("HW: COM\n");
+        break;
+    default:
+        printk("HW: error!\n");
+        break;
+    }
+}
 
 void main(void)
 {
@@ -41,20 +69,34 @@ void main(void)
         return;
     }
 
-    /*** I2C ***/
-    // if (!device_is_ready(i2c_dev))
-    // {
-    //     printk("I2C not ready!\n");
-    //     return;
-    // }
+    /*** HW address input ***/
+    if (!gpio_is_ready_dt(&addr0))
+    {
+        printk("Error: HW address device %s is not ready\n", addr0.port->name);
+        return;
+    }
+    if (!gpio_is_ready_dt(&addr1))
+    {
+        printk("Error: HW address device %s is not ready\n", addr1.port->name);
+        return;
+    }
 
-    // ret = csp_i2c_open();
-    // if (ret != CSP_ERR_NONE)
-    // {
-    //     csp_print("Failed to open I2C , error: %d\n", ret);
-    //     return;
-    // }
+    ret = gpio_pin_configure_dt(&addr0, GPIO_INPUT);
+    if (ret != 0) {
+        printk("Error %d: failed to configure %s pin %d\n", ret, addr0.port->name, addr0.pin);
+        return;
+    }
+    ret = gpio_pin_configure_dt(&addr1, GPIO_INPUT);
+    if (ret != 0) {
+        printk("Error %d: failed to configure %s pin %d\n", ret, addr1.port->name, addr1.pin);
+        return;
+    }
 
+    uint8_t my_addr = 0;
+    if(gpio_pin_get_dt(&addr0)) { my_addr += 1; }
+    if(gpio_pin_get_dt(&addr1)) { my_addr += 2; }
+
+    who_am_i(my_addr);
 
     /*** Cubesat Space Protocol ***/
     printk("Initializing CSP\n");
@@ -71,20 +113,26 @@ void main(void)
     csp_iface_t * i2c_iface = NULL;
 
     // Configure USART in devicetree and here pass NULL
-    ret = csp_usart_open_and_add_kiss_interface(NULL, CSP_IF_KISS_DEFAULT_NAME, &kiss_iface);
-    if (ret != CSP_ERR_NONE)
+    if(my_addr == COM_ADDR)
     {
-        csp_print("Failed to add KISS interface [%s], error: %d\n", DEVICE_DT_NAME(DT_ALIAS(cspkissuart)), ret);
-        return;
-    }
-    else
-    {
-        csp_print("KISS interface OK\n");
-        kiss_iface->addr = 3;
+        ret = csp_usart_open_and_add_kiss_interface(NULL, CSP_IF_KISS_DEFAULT_NAME, &kiss_iface);
+        if (ret != CSP_ERR_NONE)
+        {
+            csp_print("Failed to add KISS interface [%s], error: %d\n", DEVICE_DT_NAME(DT_ALIAS(cspkissuart)), ret);
+            return;
+        }
+        else
+        {
+            csp_print("KISS interface OK\n");
+            kiss_iface->addr = my_addr;
+        }
+
+        csp_rtable_set(32, 9, kiss_iface, CSP_NO_VIA_ADDRESS);
     }
 
     // Configure I2C
-    ret = csp_i2c_open_and_add_interface(NULL, CSP_IF_I2C_DEFAULT_NAME, &i2c_iface);
+    csp_i2c_conf_t conf = { .address = my_addr };
+    ret = csp_i2c_open_and_add_interface(&conf, CSP_IF_I2C_DEFAULT_NAME, &i2c_iface);
     if (ret != CSP_ERR_NONE)
     {
         csp_print("Failed to add I2C interface [%s], error: %d\n", DEVICE_DT_NAME(DT_ALIAS(cspi2c)), ret);
@@ -93,12 +141,14 @@ void main(void)
     else
     {
         csp_print("I2C interface OK\n");
-        i2c_iface->addr = 3;
+        // i2c_iface->addr = my_addr;
     }
 
-
     csp_rtable_set(0, 9, i2c_iface, CSP_NO_VIA_ADDRESS);
-    csp_rtable_set(32, 9, kiss_iface, CSP_NO_VIA_ADDRESS);
+    if(my_addr != COM_ADDR)
+    {
+        csp_rtable_set(32, 9, i2c_iface, COM_ADDR);
+    }
 
     csp_print("Connection table\r\n");
     csp_conn_print_table();
