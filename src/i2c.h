@@ -38,7 +38,8 @@ int csp_i2c_write(void * driver_data, csp_packet_t * packet);
 /**
  * Lock the device, so only a single user can use I2C device at a time
  */
-void csp_i2c_lock(void * driver_data);
+// void csp_i2c_lock(void * driver_data);
+void csp_i2c_lock(void * driver_data, void * pxTaskWoken);
 
 /**
  * Unlock the I2C device again

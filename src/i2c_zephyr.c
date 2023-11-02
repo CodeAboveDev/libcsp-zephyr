@@ -27,6 +27,8 @@ static csp_packet_t* packet = NULL;
 static i2c_context_t* ctx = NULL;
 volatile static uint16_t rx_length = 0;
 
+K_SEM_DEFINE(i2c_sem, 1, 1);
+
 static struct i2c_target_callbacks csp_target_cbs = 
 {
     .read_processed = csp_i2c_target_read_processed_cb,
@@ -43,8 +45,24 @@ static struct i2c_target_config csp_i2c_target_config =
     .callbacks = &csp_target_cbs
 };
 
+void csp_i2c_lock(void * driver_data, void * pxTaskWoken)
+{
+    int ret = (pxTaskWoken != NULL) ? k_sem_take(&i2c_sem, K_NO_WAIT) : k_sem_take(&i2c_sem, K_MSEC(100));
+    if(ret != 0)
+    {
+        csp_print("%s[%s]:Lock: %s\n", __FUNCTION__, ctx->name, strerror(ret));
+    }
+}
+
+void csp_i2c_unlock(void * driver_data)
+{
+    k_sem_give(&i2c_sem);
+}
+
 int csp_i2c_target_write_requested_cb(struct i2c_target_config *config)
 {
+    uint8_t isr = 0;
+    csp_i2c_lock(NULL, &isr);
     csp_print("<<<---\n");
     // TODO: IS THIS CALLED IN ISR?
     // TODO: yes, this is ISR context, handle properly!
@@ -110,6 +128,8 @@ int csp_i2c_target_stop_cb(struct i2c_target_config *config)
 
     csp_print("<<<---\n");
 
+    csp_i2c_unlock(NULL);
+
     return 0;
 }
 
@@ -128,6 +148,7 @@ int csp_i2c_open(void)
 #define WRITE_TRY ( 3 ) 
 int csp_i2c_write(void * driver_data, csp_packet_t * packet)
 {
+    csp_i2c_lock(NULL, NULL);
     csp_print("--->>>\n");
     int ret;
     csp_print("%s[%s]: sending packet, size: %d, dst: %d, cfpid: %d\n", __FUNCTION__, ctx->name, packet->frame_length, packet->id.dst, packet->cfpid);
@@ -164,6 +185,7 @@ int csp_i2c_write(void * driver_data, csp_packet_t * packet)
     }
 
     csp_print("--->>>\n");
+    csp_i2c_unlock(NULL);
     return packet->frame_length;
 
     // uint16_t frame_len = packet->frame_length;
