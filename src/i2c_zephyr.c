@@ -110,7 +110,6 @@ int csp_i2c_open(void)
     return CSP_ERR_NONE;
 }
 
-#define WRITE_TRY ( 3 ) 
 int csp_i2c_write(void * driver_data, csp_packet_t * packet)
 {
     int ret = i2c_target_unregister(i2c_dev, &csp_i2c_target_config);
@@ -133,13 +132,7 @@ int csp_i2c_write(void * driver_data, csp_packet_t * packet)
     msg.len = packet->frame_length;
     msg.flags = I2C_MSG_WRITE | I2C_MSG_STOP;
 
-    uint8_t try = 0;
-    do
-    {
-        ret = i2c_transfer(i2c_dev, &msg, 1, packet->cfpid);
-        csp_print("i2c_transfer: %d\n", ret);
-        try++;
-    } while ((ret != 0) && (try < WRITE_TRY));
+    ret = i2c_transfer(i2c_dev, &msg, 1, packet->cfpid);
 
     if(ret != 0)
     {
