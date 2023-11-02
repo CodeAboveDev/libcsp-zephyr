@@ -13,6 +13,9 @@ typedef struct
     char name[CSP_IFLIST_NAME_MAX + 1];
     csp_iface_t iface;
     csp_i2c_interface_data_t ifdata;
+
+    csp_packet_t* packet;
+    uint16_t rx_length;
 } i2c_context_t;
 
 int csp_i2c_target_write_requested_cb(struct i2c_target_config *config);
@@ -23,9 +26,7 @@ int csp_i2c_target_stop_cb(struct i2c_target_config *config);
 
 static const struct device *const i2c_dev = DEVICE_DT_GET(DT_NODELABEL(i2c1));
 
-static csp_packet_t* packet = NULL;
 static i2c_context_t* ctx = NULL;
-volatile static uint16_t rx_length = 0;
 
 static struct i2c_target_callbacks csp_target_cbs = 
 {
@@ -51,14 +52,9 @@ int csp_i2c_target_write_requested_cb(struct i2c_target_config *config)
     // TODO: yes, this is ISR context, handle properly!
 
     // TODO: Get I2C ctx by i2c_target_config
-
-    // There is an incoming packet, let's prepare a buffer for it
-    // TODO: Get buffer size from interface MTU size
-    // TODO: Keep packet in i2c ctx
-
     csp_print("%s[%s]:Buffers available: %d\n", __FUNCTION__, ctx->name, csp_buffer_remaining())
-    packet = csp_buffer_get_isr(CSP_BUFFER_SIZE);
-    if (packet == NULL)
+    ctx->packet = csp_buffer_get_isr(CSP_BUFFER_SIZE);
+    if (ctx->packet == NULL)
     {
         // Buffer not prepared, abort receiving
         csp_print("%s[%s]:Write RX packet NULL!\n", __FUNCTION__, ctx->name);
@@ -68,10 +64,9 @@ int csp_i2c_target_write_requested_cb(struct i2c_target_config *config)
         return -1;
     }
 
-    csp_id_setup_rx(packet);
-    rx_length = 0;
+    csp_id_setup_rx(ctx->packet);
+    ctx->rx_length = 0;
 
-    csp_print("%s[%s]:ACCEPT\n", __FUNCTION__, ctx->name)
     return 0;
 }
 
@@ -83,13 +78,13 @@ int csp_i2c_target_read_requested_cb(struct i2c_target_config *config, uint8_t *
 
 int csp_i2c_target_write_received_cb(struct i2c_target_config *config, uint8_t val)
 {
-    if (packet == NULL)
+    if (ctx->packet == NULL)
     {
         // Buffer not prepared, abort receiving
         csp_print("Write RX packet NULL!\n");
         return -CSP_ERR_NOBUFS;
     }
-    packet->frame_begin[rx_length++] = val;
+    ctx->packet->frame_begin[ctx->rx_length++] = val;
 
     return 0;
 }
@@ -102,12 +97,12 @@ int csp_i2c_target_read_processed_cb(struct i2c_target_config *config, uint8_t *
 
 int csp_i2c_target_stop_cb(struct i2c_target_config *config)
 {
-    csp_print("csp_i2c_target_stop_cb, rx_len: %d\n", rx_length);
+    csp_print("csp_i2c_target_stop_cb, rx_len: %d\n", ctx->rx_length);
 
     uint8_t task_woken = 0;
 
-    packet->frame_length = rx_length;
-    csp_i2c_rx(&ctx->iface, packet, &task_woken);
+    ctx->packet->frame_length = ctx->rx_length;
+    csp_i2c_rx(&ctx->iface, ctx->packet, &task_woken);
 
     csp_print("<<<---\n");
 
@@ -236,7 +231,3 @@ int csp_i2c_open_and_add_interface(const csp_i2c_conf_t *conf, const char * ifna
 
     return CSP_ERR_NONE;
 }
-
-
-
-
