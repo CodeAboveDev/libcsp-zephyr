@@ -55,8 +55,6 @@ void main(void)
 {
     int ret;
 
-    const struct device *const i2c_dev = DEVICE_DT_GET(DT_NODELABEL(i2c1));
-
     /*** User LED ***/
     if (!gpio_is_ready_dt(&led))
     {
@@ -141,7 +139,6 @@ void main(void)
     else
     {
         csp_print("I2C interface OK\n");
-        // i2c_iface->addr = my_addr;
     }
 
     csp_rtable_set(0, 9, i2c_iface, CSP_NO_VIA_ADDRESS);
@@ -161,13 +158,8 @@ void main(void)
 
     server_start();
 
-    uint8_t buf[16] = { "HelloI2Cmessage!" };
-
     while (1)
     {
-        // ret = i2c_write(i2c_dev, buf, 16, 11);
-        // printk("i2c_write: %d\n", ret);
-
         ret = gpio_pin_toggle_dt(&led);
         if (ret < 0)
         {
