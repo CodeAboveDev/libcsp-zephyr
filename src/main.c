@@ -7,7 +7,9 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/i2c.h>
 
+#include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #define OBC_ADDR ( 1 )
 #define EPS_ADDR ( 2 )
@@ -17,6 +19,11 @@
 
 /* The devicetree node identifier for the "led0" alias. */
 #define LED0_NODE DT_ALIAS(led0)
+#define LED1_NODE DT_ALIAS(led1)
+#define LED2_NODE DT_ALIAS(led2)
+#define LED3_NODE DT_ALIAS(led3)
+#define LED4_NODE DT_ALIAS(led4)
+#define LED5_NODE DT_ALIAS(led5)
 // #define CSP_I2C_NODE DT_ALIAS(cspi2c)
 
 #define ADDR0_NODE	DT_ALIAS(addr0)
@@ -26,6 +33,14 @@ static const struct gpio_dt_spec addr0 = GPIO_DT_SPEC_GET_OR(ADDR0_NODE, gpios, 
 static const struct gpio_dt_spec addr1 = GPIO_DT_SPEC_GET_OR(ADDR1_NODE, gpios, {0});
                                   
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
+
+static const struct gpio_dt_spec leds[5] = {
+    GPIO_DT_SPEC_GET(LED1_NODE, gpios),
+    GPIO_DT_SPEC_GET(LED2_NODE, gpios),
+    GPIO_DT_SPEC_GET(LED3_NODE, gpios),
+    GPIO_DT_SPEC_GET(LED4_NODE, gpios),
+    GPIO_DT_SPEC_GET(LED5_NODE, gpios),
+};
 
 /* These three functions must be provided in arch specific way */
 void router_start(void);
@@ -65,6 +80,19 @@ void main(void)
     if (ret < 0)
     {
         return;
+    }
+
+    for(int i = 0; i < 5; i++)
+    {
+        if(!gpio_is_ready_dt(&leds[i]))
+        {
+            return;
+        }
+        ret = gpio_pin_configure_dt(&leds[i], GPIO_OUTPUT_ACTIVE);
+        if (ret < 0)
+        {
+            return;
+        }
     }
 
     /*** HW address input ***/
@@ -158,6 +186,8 @@ void main(void)
 
     server_start();
 
+    srand(time(NULL));
+
     while (1)
     {
         ret = gpio_pin_toggle_dt(&led);
@@ -165,6 +195,8 @@ void main(void)
         {
             return;
         }
+
+        ret = gpio_pin_toggle_dt(&leds[rand()%5]);
         k_msleep(SLEEP_TIME_MS);
     }
 }

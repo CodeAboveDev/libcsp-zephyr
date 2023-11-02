@@ -7,6 +7,36 @@
 
         addr0 = &addr_0;
         addr1 = &addr_1;
+
+        led1 = &led_1;
+        led2 = &led_2;
+        led3 = &led_3;
+        led4 = &led_4;
+        led5 = &led_5;
+    };
+
+    leds {
+        led_1: led_1 {
+            gpios = <&gpiob 1 GPIO_ACTIVE_LOW>;
+            label = "LED 1";
+        };
+        led_2: led_2 {
+            gpios = <&gpiob 0 GPIO_ACTIVE_LOW>;
+            label = "LED 2";
+        };
+        led_3: led_3 {
+            gpios = <&gpioa 7 GPIO_ACTIVE_LOW>;
+            label = "LED 3";
+        };
+        led_4: led_4 {
+            gpios = <&gpioa 6 GPIO_ACTIVE_LOW>;
+            label = "LED 4";
+        };
+        led_5: led_5 {
+            gpios = <&gpioa 5 GPIO_ACTIVE_LOW>;
+            label = "LED 5";
+        };
+        
     };
 
 	gpio_keys {
