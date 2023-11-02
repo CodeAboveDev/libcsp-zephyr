@@ -45,6 +45,7 @@ static struct i2c_target_config csp_i2c_target_config =
 
 int csp_i2c_target_write_requested_cb(struct i2c_target_config *config)
 {
+    csp_print("<<<---\n");
     // TODO: IS THIS CALLED IN ISR?
     // TODO: yes, this is ISR context, handle properly!
 
@@ -54,16 +55,22 @@ int csp_i2c_target_write_requested_cb(struct i2c_target_config *config)
     // TODO: Get buffer size from interface MTU size
     // TODO: Keep packet in i2c ctx
 
+    csp_print("%s[%s]:Buffers available: %d\n", __FUNCTION__, ctx->name, csp_buffer_remaining())
     packet = csp_buffer_get_isr(CSP_BUFFER_SIZE);
     if (packet == NULL)
     {
+        // Buffer not prepared, abort receiving
+        csp_print("%s[%s]:Write RX packet NULL!\n", __FUNCTION__, ctx->name);
+        
         // No more memory, return negative error code to reject incoming write request
+        csp_print("%s[%s]:REJECT\n", __FUNCTION__, ctx->name)
         return -1;
     }
 
     csp_id_setup_rx(packet);
     rx_length = 0;
 
+    csp_print("%s[%s]:ACCEPT\n", __FUNCTION__, ctx->name)
     return 0;
 }
 
@@ -96,10 +103,12 @@ int csp_i2c_target_stop_cb(struct i2c_target_config *config)
 {
     csp_print("csp_i2c_target_stop_cb, rx_len: %d\n", rx_length);
 
-    uint8_t task_woken;
+    uint8_t task_woken = 0;
 
     packet->frame_length = rx_length;
     csp_i2c_rx(&ctx->iface, packet, &task_woken);
+
+    csp_print("<<<---\n");
 
     return 0;
 }
@@ -119,6 +128,7 @@ int csp_i2c_open(void)
 #define WRITE_TRY ( 3 ) 
 int csp_i2c_write(void * driver_data, csp_packet_t * packet)
 {
+    csp_print("--->>>\n");
     int ret;
     csp_print("%s[%s]: sending packet, size: %d, dst: %d, cfpid: %d\n", __FUNCTION__, ctx->name, packet->frame_length, packet->id.dst, packet->cfpid);
 
@@ -134,7 +144,6 @@ int csp_i2c_write(void * driver_data, csp_packet_t * packet)
         csp_print("i2c not ready\n");
         return CSP_ERR_TX;
     }
-    csp_print("i2c ready\n");
 
     /* Data to be written, and STOP after this. */
     msg.buf = packet->frame_begin;
@@ -154,7 +163,16 @@ int csp_i2c_write(void * driver_data, csp_packet_t * packet)
         return CSP_ERR_TX;
     }
 
+    csp_print("--->>>\n");
     return packet->frame_length;
+
+    // uint16_t frame_len = packet->frame_length;
+    // csp_buffer_free(packet);
+
+    // THIS FUNCTION SHOULD CALL csp_buffer_free() ?
+    // THIS IS MISSING HERE AND IS REASON WHY 14-15 TIMES BEFORE LOCK?
+
+    // return frame_len;
 }
 
 int csp_i2c_open_and_add_interface(const csp_i2c_conf_t *conf, const char * ifname, csp_iface_t ** return_iface)
