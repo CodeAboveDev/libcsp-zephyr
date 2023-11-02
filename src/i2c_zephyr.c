@@ -149,8 +149,12 @@ int csp_i2c_open(void)
 int csp_i2c_write(void * driver_data, csp_packet_t * packet)
 {
     csp_i2c_lock(NULL, NULL);
+    int ret = i2c_target_unregister(i2c_dev, &csp_i2c_target_config);
+    if(ret != 0)
+    {
+        csp_print("%s: i2c_target_unregister() failed, error: %d\n", __FUNCTION__, ret);
+    }
     csp_print("--->>>\n");
-    int ret;
     csp_print("%s[%s]: sending packet, size: %d, dst: %d, cfpid: %d\n", __FUNCTION__, ctx->name, packet->frame_length, packet->id.dst, packet->cfpid);
 
     // // csp_i2c_tx() sets cfpid to either via address or destination address
@@ -185,6 +189,11 @@ int csp_i2c_write(void * driver_data, csp_packet_t * packet)
     }
 
     csp_print("--->>>\n");
+    ret = i2c_target_register(i2c_dev, &csp_i2c_target_config);
+    if(ret != 0)
+    {
+        csp_print("%s: i2c_target_register() failed, error: %d\n", __FUNCTION__, ret);
+    }
     csp_i2c_unlock(NULL);
     return packet->frame_length;
 
